@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using DG.Tweening;
 
 public class ForensicGame : MonoBehaviour
 {
@@ -52,6 +53,13 @@ public class ForensicGame : MonoBehaviour
     [Header("게임 가이드 팝업")]
     public GameObject guidePopup;
     public Button startButton;
+
+    // ──────────────────────────────────────
+    // 드래그 가이드 화살표
+    // ──────────────────────────────────────
+    [Header("드래그 가이드")]
+    public GameObject dragArrow;        // 빈 오브젝트 (자식: Arrow1~4)
+    private GameObject[] arrows;        // 자식 화살표 자동 수집
 
     // ──────────────────────────────────────
     // 가루 뿌리기 버튼
@@ -113,7 +121,10 @@ public class ForensicGame : MonoBehaviour
     // ──────────────────────────────────────
     // 정답 데이터
     // ──────────────────────────────────────
+    // correctAnswers[location] → 해당 위치 정답 용의자 이름
+    // correctSuspectIndex[location] → fpImage 인덱스 (0=비서, 1=청소부, 2=경비원, 3=수집가)
     private string[] correctAnswers = { "비서", "청소부", "경비원" };
+    private int[] correctSuspectIndex = { 0, 1, 2 }; // fpImage1=0, fpImage2=1, fpImage3=2, fpImage4=3
     private string[] evidenceNames = { "금고 지문", "바닥 지문", "데스크 지문" };
     private Sprite[] locationSprites;
 
@@ -173,6 +184,15 @@ public class ForensicGame : MonoBehaviour
 
         powderButton.onClick.AddListener(OnPowderClicked);
         confirmButton.onClick.AddListener(OnConfirmClicked);
+
+        // dragArrow 자식 화살표 수집 (Arrow1~4)
+        if (dragArrow != null)
+        {
+            dragArrow.SetActive(false);
+            arrows = new GameObject[dragArrow.transform.childCount];
+            for (int i = 0; i < arrows.Length; i++)
+                arrows[i] = dragArrow.transform.GetChild(i).gameObject;
+        }
     }
 
     // ──────────────────────────────────────
@@ -339,6 +359,39 @@ public class ForensicGame : MonoBehaviour
         afisDescText.text = "발견된 지문을 용의자 지문 위에 올려보세요!";
         resultText.text = "";
         afisPanel.SetActive(true);
+
+        // 정답 용의자 카드 위에 화살표 표시
+        ShowArrow(0);
+    }
+
+    // ──────────────────────────────────────
+    // 화살표 표시 (정답 인덱스만)
+    // ──────────────────────────────────────
+    void ShowArrow(int correctIndex)
+    {
+        if (dragArrow == null || arrows == null) return;
+
+        dragArrow.SetActive(true);
+
+        // 4개 전부 표시
+        for (int i = 0; i < arrows.Length; i++)
+        {
+            arrows[i].SetActive(true);
+            DOTween.Restart("arrow" + (i + 1));
+        }
+    }
+
+    // ──────────────────────────────────────
+    // 화살표 전체 숨기기
+    // ──────────────────────────────────────
+    void HideArrows()
+    {
+        if (dragArrow == null || arrows == null) return;
+
+        for (int i = 0; i < arrows.Length; i++)
+            DOTween.Pause("arrow" + (i + 1));
+
+        dragArrow.SetActive(false);
     }
 
     // ──────────────────────────────────────
@@ -348,6 +401,9 @@ public class ForensicGame : MonoBehaviour
     {
         if (suspectName == correctAnswers[currentLocation])
         {
+            // 정답 → 화살표 숨기기
+            HideArrows();
+
             resultText.text = $"{suspectName}의 지문과 일치합니다!";
             resultText.color = Color.green;
             StartCoroutine(EvidenceObtained());
@@ -377,6 +433,7 @@ public class ForensicGame : MonoBehaviour
         yield return new WaitForSeconds(2f);
 
         afisPanel.SetActive(false);
+        HideArrows();   // 패널 닫힐 때도 확실히 숨기기
         dimBackground.SetActive(false);
         currentFingerprintImage.SetActive(false);
         powderButton.gameObject.SetActive(false);
