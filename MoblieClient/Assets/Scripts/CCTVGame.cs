@@ -1,9 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class CCTVGame : MonoBehaviour
 {
@@ -79,6 +80,9 @@ public class CCTVGame : MonoBehaviour
     [Header("가이드 팝업")]
     public GameObject guidePopup;
     public Button startButton;
+
+    [Header("슬라이더 힌트")]
+    public GameObject sliderHintText;   // TextMeshPro 오브젝트
 
     // ──────────────────────────────────────
     // 모니터 4개
@@ -205,6 +209,13 @@ public class CCTVGame : MonoBehaviour
         currentTimeSlot = (int)value;
         currentTimeText.text = $"현재 시간: {timeLabels[currentTimeSlot]}";
         UpdateMonitors(currentTimeSlot);
+
+        // 처음 드래그 시 힌트 숨기기
+        if (sliderHintText != null && sliderHintText.activeSelf)
+        {
+            DOTween.Pause("sliderHint");
+            sliderHintText.SetActive(false);
+        }
     }
 
     // ──────────────────────────────────────
