@@ -14,6 +14,14 @@ public class CyberGame : MonoBehaviour
     public GameObject guidePopup;
     public Button startButton;
 
+    [Header("튜토리얼")]
+    public GameObject scanTutorial;
+    public GameObject sliderTutorial;
+    public GameObject keywordTutorial;
+    public Button scanTutorialButton;
+    public Button sliderTutorialButton;
+    public Button keywordTutorialButton;
+
     // ──────────────────────────────────────
     // 파일 아이콘 3개
     // ──────────────────────────────────────
@@ -21,6 +29,11 @@ public class CyberGame : MonoBehaviour
     public Button fileBtn1;
     public Button fileBtn2;
     public Button fileBtn3;
+
+    // 파일 이미지 스프라이트
+    public Sprite fileSprite1;
+    public Sprite fileSprite2;
+    public Sprite fileSprite3;
 
     // ──────────────────────────────────────
     // ScanGame (파일 1)
@@ -50,6 +63,7 @@ public class CyberGame : MonoBehaviour
     public Button restoreButton;
     public TextMeshProUGUI sliderResultText;
     public Button sliderCloseButton;
+    private bool sliderSolved = false;
 
     [Header("슬라이더 이미지")]
     public Sprite phoneColorSprite;
@@ -67,6 +81,7 @@ public class CyberGame : MonoBehaviour
     public GameObject keywordTemplate;  // 버튼 템플릿
     public TextMeshProUGUI keywordResultText;
     public Button keywordCloseButton;
+    public Button keywordSubmitButton; // 정답 제출 버튼
 
     // ──────────────────────────────────────
     // 증거 팝업
@@ -90,12 +105,12 @@ public class CyberGame : MonoBehaviour
     // ──────────────────────────────────────
     private string[] allKeywords =
     {
-        "레드 다이아몬드 반지 시세",    // 수상 ★
+        "레드 다이아몬드 반지 시세",    // 정답 ★
         "오늘 날씨",
         "점심 맛집 추천",
-        "레드 다이아몬드 중고 거래",    // 수상 ★
+        "레드 다이아몬드 중고 거래",    // 정답 ★
         "영화 상영 시간",
-        "레드 다이아 반지 가격",        // 수상 ★
+        "레드 다이아 반지 가격",        // 정답 ★
         "주말 나들이 장소",
         "택배 조회",
         "스트레스 해소 방법",
@@ -123,9 +138,9 @@ public class CyberGame : MonoBehaviour
 
     private string[] evidenceDescs =
     {
-        "수집가가 레드 다이아 반지 구매를\n요청한 이메일이 복원됐습니다.",
-        "경비원이 알 수 없는 번호로부터\n수상한 메시지를 받은 기록이 복원됐습니다.\n\n[알 수 없는 번호]\n오늘 밤 은행 비워?\n몇 시에 끝나?",
-        "비서가 사건 2주일 전\n레드 다이아 반지 시세를 검색하고\n사건 당일 삭제한 기록이 복원됐습니다!"
+        "[수집가의 반지 구매 요청 이메일]\n\n수집가가 반지를 팔아달라고 하는 내용의 이메일이 여러 건 있다.",
+        "[경비원의 수상한 메시지]\n\n알 수 없는 번호로부터 메시지가 와 있다.\n- 오늘 밤 은행 비워?\n- 몇 시에 끝나?",
+        "[비서의 반지 시세 검색 기록]\n\n사건 2주일 전부터 지속적으로 반지 시세를 검색하고 판매처를 알아본 것으로 보인다."
     };
 
     // ──────────────────────────────────────
@@ -135,8 +150,8 @@ public class CyberGame : MonoBehaviour
     private bool[] fileCleared = { false, false, false };
     private int totalCleared = 0;
     private int foundCount = 0;
-    private float[] answerMin = { 75f, 80f, 60f };
-    private float[] answerMax = { 85f, 90f, 70f };
+    private float[] answerMin = { 35f, 70f, 55f };
+    private float[] answerMax = { 45f, 80f, 65f };
 
     // ──────────────────────────────────────
     // Start
@@ -147,6 +162,9 @@ public class CyberGame : MonoBehaviour
         scanGame.SetActive(false);
         sliderGame.SetActive(false);
         keywordGame.SetActive(false);
+        scanTutorial.SetActive(false);
+        sliderTutorial.SetActive(false);
+        keywordTutorial.SetActive(false);
         evidencePopup.SetActive(false);
         clearTitleText.SetActive(false);
         clearDescText.SetActive(false);
@@ -173,6 +191,10 @@ public class CyberGame : MonoBehaviour
         sliderCloseButton.onClick.AddListener(CloseSliderGame);
         restoreButton.onClick.AddListener(OnRestoreClicked);
         keywordCloseButton.onClick.AddListener(CloseKeywordGame);
+        keywordSubmitButton.onClick.AddListener(OnKeywordSubmit);
+        scanTutorialButton.onClick.AddListener(() => OnTutorialConfirmed(0));
+        sliderTutorialButton.onClick.AddListener(() => OnTutorialConfirmed(1));
+        keywordTutorialButton.onClick.AddListener(() => OnTutorialConfirmed(2));
 
         slider1.onValueChanged.AddListener(OnSlider1Changed);
         slider2.onValueChanged.AddListener(OnSlider2Changed);
@@ -195,6 +217,7 @@ public class CyberGame : MonoBehaviour
     // ──────────────────────────────────────
     // 파일 클릭
     // ──────────────────────────────────────
+    // 튜토리얼 띄우기
     void OnFileClicked(int fileIndex)
     {
         if (fileCleared[fileIndex]) return;
@@ -206,6 +229,25 @@ public class CyberGame : MonoBehaviour
             case 1: OpenSliderGame(); break;
             case 2: OpenKeywordGame(); break;
         }
+
+        ShowTutorial(fileIndex);   // 게임이 열린 뒤 그 위에 튜토리얼 표시
+    }
+
+    void ShowTutorial(int fileIndex)
+    {
+        switch (fileIndex)
+        {
+            case 0: scanTutorial.SetActive(true); break;
+            case 1: sliderTutorial.SetActive(true); break;
+            case 2: keywordTutorial.SetActive(true); break;
+        }
+    }
+
+    void OnTutorialConfirmed(int fileIndex)
+    {
+        scanTutorial.SetActive(false);
+        sliderTutorial.SetActive(false);
+        keywordTutorial.SetActive(false);
     }
 
     // ──────────────────────────────────────
@@ -228,7 +270,7 @@ public class CyberGame : MonoBehaviour
             }
         }
 
-        scanTitleText.text = "삭제된 이메일을 스캔하세요!";
+        scanTitleText.text = "데이터 조각을 스캔하세요!";
         scanCountText.text = $"0 / {total}";
         scanGame.SetActive(true);
     }
@@ -241,6 +283,8 @@ public class CyberGame : MonoBehaviour
 
     void Update()
     {
+        if (scanTutorial.activeSelf) return;   // 튜토리얼 중에는 스캔 입력 무시
+
         if (scanGame.activeSelf && currentFile == 0)
         {
             Vector2 inputPos = Vector2.zero;
@@ -303,9 +347,9 @@ public class CyberGame : MonoBehaviour
 
     IEnumerator ScanGameClear()
     {
-        yield return new WaitForSeconds(0.5f);
-        scanGame.SetActive(false);
+        yield return new WaitForSeconds(1.5f);
         ShowEvidencePopup(currentFile);
+        scanGame.SetActive(false);
     }
 
     // ──────────────────────────────────────
@@ -313,31 +357,26 @@ public class CyberGame : MonoBehaviour
     // ──────────────────────────────────────
     void OpenSliderGame()
     {
+        sliderSolved = false;
+
         slider1.value = 0;
         slider2.value = 0;
         slider3.value = 0;
-        sliderValue1.text = "0";
-        sliderValue2.text = "0";
-        sliderValue3.text = "0";
         sliderResultText.text = "";
 
-        if (phoneImage != null && phoneGraySprite != null)
-            phoneImage.sprite = phoneGraySprite;
-
-        if (grayOverlay != null)
-        {
-            Color c = grayOverlay.color;
-            c.a = 0.9f;
-            grayOverlay.color = c;
-        }
-
+        // 컬러 원본 이미지로 시작 (셰이더가 어둡게/흐리게/흑백으로 가려줌)
         if (phoneImage != null)
         {
-            Color c = phoneImage.color;
-            c.a = 0.3f;
-            phoneImage.color = c;
+            if (phoneColorSprite != null)
+                phoneImage.sprite = phoneGraySprite;
+            phoneImage.color = Color.white;   // 기존 알파 0.3 제거 (셰이더 쓰면 투명해짐)
         }
 
+        // 안개 오버레이는 셰이더가 대신하므로 끔
+        if (grayOverlay != null)
+            grayOverlay.gameObject.SetActive(false);
+
+        UpdatePhoneVisual();   // 값이 이미 0이면 이벤트가 안 와서 직접 호출
         sliderGame.SetActive(true);
     }
 
@@ -350,28 +389,47 @@ public class CyberGame : MonoBehaviour
     void OnSlider1Changed(float value)
     {
         sliderValue1.text = ((int)value).ToString();
-        if (phoneImage != null)
-        {
-            Color c = phoneImage.color;
-            c.a = Mathf.Lerp(0.2f, 1f, value / 100f);
-            phoneImage.color = c;
-        }
+        UpdatePhoneVisual();
     }
 
     void OnSlider2Changed(float value)
     {
         sliderValue2.text = ((int)value).ToString();
-        if (grayOverlay != null)
-        {
-            Color c = grayOverlay.color;
-            c.a = Mathf.Lerp(0.9f, 0f, value / 100f);
-            grayOverlay.color = c;
-        }
+        UpdatePhoneVisual();
     }
 
     void OnSlider3Changed(float value)
     {
         sliderValue3.text = ((int)value).ToString();
+        UpdatePhoneVisual();
+    }
+
+    void UpdatePhoneVisual()
+    {
+        if (phoneImage == null || sliderSolved) return;
+
+        float c1 = (answerMin[0] + answerMax[0]) / 2f;
+        float c2 = (answerMin[1] + answerMax[1]) / 2f;
+        float c3 = (answerMin[2] + answerMax[2]) / 2f;
+
+        float bright = slider1.value / c1;
+        float color = slider3.value / c3;
+        float sharp = slider2.value / c2;
+
+        Material m = phoneImage.material;
+
+        // 밝기: 정답까지 0.1→1, 넘으면 급격히 증가 (과노출로 하얗게)
+        float b = bright <= 1f ? Mathf.Lerp(0.1f, 1f, bright) : 1f + (bright - 1f) * 8f;
+        m.SetFloat("_Brightness", b);
+
+        // 채도: 정답까지 0→1, 넘으면 급격히 증가 (색이 형광처럼 튐)
+        float s = color <= 1f ? color : 1f + (color - 1f) * 8f;
+        m.SetFloat("_Saturation", s);
+
+        // 블러: 정답에서 0
+        // 정답 전: 흐림→선명 / 정답 후: 다시 흐려짐 (너무 올리면 번져서 안 보임)
+        float blur = sharp <= 1f ? 1f - sharp : (sharp - 1f) * 1.5f;
+        m.SetFloat("_Blur", blur);
     }
 
     void OnRestoreClicked()
@@ -382,9 +440,18 @@ public class CyberGame : MonoBehaviour
 
         if (s1 && s2 && s3)
         {
-            // 복원 성공 시 이미지 교체
-            if (phoneImage != null && phoneColorSprite != null)
-                phoneImage.sprite = phoneColorSprite;
+            sliderSolved = true;   // 이후 슬라이더를 움직여도 화면이 안 바뀜
+
+            // 정답 이미지로 교체 + 셰이더 효과 모두 해제
+            if (phoneImage != null)
+            {
+                if (phoneColorSprite != null)
+                    phoneImage.sprite = phoneColorSprite;   // ← 준비한 정답 이미지
+                Material m = phoneImage.material;
+                m.SetFloat("_Brightness", 1f);
+                m.SetFloat("_Saturation", 1f);
+                m.SetFloat("_Blur", 0f);
+            }
 
             sliderResultText.text = "복원 완료!";
             sliderResultText.color = Color.green;
@@ -404,9 +471,9 @@ public class CyberGame : MonoBehaviour
 
     IEnumerator SliderGameClear()
     {
-        yield return new WaitForSeconds(0.8f);
-        sliderGame.SetActive(false);
+        yield return new WaitForSeconds(1.5f);
         ShowEvidencePopup(currentFile);
+        sliderGame.SetActive(false);
     }
 
     // ──────────────────────────────────────
@@ -416,34 +483,11 @@ public class CyberGame : MonoBehaviour
     {
         selectedKeywords.Clear();
         keywordResultText.text = "";
-        analyzingPanel.SetActive(true);
-        keywordListPanel.SetActive(false);
-        keywordGame.SetActive(true);
-
-        StartCoroutine(AnalyzingProcess());
-    }
-
-    IEnumerator AnalyzingProcess()
-    {
-        // 로딩 바 애니메이션
-        float elapsed = 0f;
-        float duration = 2f;
-        analyzingBar.value = 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            analyzingBar.value = elapsed / duration;
-            yield return null;
-        }
-
-        analyzingBar.value = 1f;
-        yield return new WaitForSeconds(0.3f);
-
-        // 로딩 완료 → 검색어 목록 표시
-        analyzingPanel.SetActive(false);
         keywordListPanel.SetActive(true);
         GenerateKeywordButtons();
+        keywordGame.SetActive(true);
+        keywordSubmitButton.interactable = true;
+
     }
 
     void GenerateKeywordButtons()
@@ -474,21 +518,27 @@ public class CyberGame : MonoBehaviour
     {
         if (selectedKeywords.Contains(keyword))
         {
-            // 선택 해제
             selectedKeywords.Remove(keyword);
             btnObj.GetComponent<Image>().color = new Color(0.08f, 0.16f, 0.31f);
         }
         else
         {
-            // 선택
             selectedKeywords.Add(keyword);
             btnObj.GetComponent<Image>().color = new Color(0.1f, 0.5f, 0.1f);
         }
 
-        // 정답 확인 (3개 다 선택됐는지)
-        if (selectedKeywords.Count == correctKeywords.Length)
+        // 선택을 바꾸면 이전 결과 메시지 지우기
+        keywordResultText.text = "";
+    }
+
+    void OnKeywordSubmit()
+    {
+        // 이미 정답 처리 중이면 중복 제출 방지
+        if (!keywordSubmitButton.interactable) return;
+
+        bool allCorrect = selectedKeywords.Count == correctKeywords.Length;
+        if (allCorrect)
         {
-            bool allCorrect = true;
             foreach (string correct in correctKeywords)
             {
                 if (!selectedKeywords.Contains(correct))
@@ -497,34 +547,27 @@ public class CyberGame : MonoBehaviour
                     break;
                 }
             }
+        }
 
-            if (allCorrect)
-            {
-                keywordResultText.text = "수상한 검색 기록을 모두 찾았습니다!";
-                keywordResultText.color = Color.green;
-                StartCoroutine(KeywordGameClear());
-            }
-            else
-            {
-                keywordResultText.text = "수상하지 않은 검색어가 포함됐어요!\n다시 확인해보세요.";
-                keywordResultText.color = Color.red;
-                selectedKeywords.Clear();
-
-                // 버튼 색상 초기화
-                foreach (Transform child in keywordContent)
-                {
-                    if (child.gameObject != keywordTemplate)
-                        child.GetComponent<Image>().color = new Color(0.08f, 0.16f, 0.31f);
-                }
-            }
+        if (allCorrect)
+        {
+            keywordResultText.text = "필요한 검색어를 모두 수집했습니다!";
+            keywordResultText.color = Color.green;
+            keywordSubmitButton.interactable = false;
+            StartCoroutine(KeywordGameClear());
+        }
+        else
+        {
+            keywordResultText.text = "필요 없는 검색어가 포함됐거나\n빠진 검색어가 있습니다. 다시 확인해보세요.";
+            keywordResultText.color = Color.red;
         }
     }
 
     IEnumerator KeywordGameClear()
     {
-        yield return new WaitForSeconds(0.8f);
-        keywordGame.SetActive(false);
+        yield return new WaitForSeconds(1.5f);
         ShowEvidencePopup(currentFile);
+        keywordGame.SetActive(false);
     }
 
     void CloseKeywordGame()
@@ -543,7 +586,7 @@ public class CyberGame : MonoBehaviour
         fileBtn2.interactable = false;
         fileBtn3.interactable = false;
 
-        evidenceTitleText.text = "파일 복원 완료!";
+        evidenceTitleText.text = "파일 복원 완료!\n\n다음 증거물을 획득했습니다.";
         evidenceDescText.text = evidenceDescs[fileIndex];
         evidencePopup.SetActive(true);
     }
@@ -569,9 +612,18 @@ public class CyberGame : MonoBehaviour
 
         switch (currentFile)
         {
-            case 0: fileBtn1.interactable = false; break;
-            case 1: fileBtn2.interactable = false; break;
-            case 2: fileBtn3.interactable = false; break;
+            case 0:
+                fileBtn1.image.sprite = fileSprite1;
+                fileBtn1.interactable = false;
+                break;
+            case 1:
+                fileBtn2.image.sprite = fileSprite2;
+                fileBtn2.interactable = false;
+                break;
+            case 2:
+                fileBtn3.image.sprite = fileSprite3;
+                fileBtn3.interactable = false;
+                break;
         }
 
         currentFile = -1;
