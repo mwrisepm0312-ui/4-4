@@ -80,7 +80,7 @@ public class PCHostUI : MonoBehaviour
         startButton.interactable = false;
 
         var tugboat = InstanceFinder.NetworkManager.GetComponent<Tugboat>();
-        tugboat.SetPort(7777);
+        tugboat.SetPort(7770);
         tugboat.SetMaximumClients(maxPlayers + 1);
         tugboat.SetTimeout(10, false);
 

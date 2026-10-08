@@ -1,4 +1,4 @@
-using DG.Tweening;
+ï»¿using DG.Tweening;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Transporting.Tugboat;
@@ -69,9 +69,9 @@ public class WaitingSceneUI : MonoBehaviour
 
     IEnumerator LoadOpening()
     {
-        DOTween.Pause("statusFade");        // ¡ç Fade Loop ¸ØÃß±â
-        statusText.DOFade(1f, 0.2f);        // ¡ç ¾ËÆÄ ¿øº¹
-        statusText.text = "¸ğµç ÀÎ¿ø ¿¬°á ¿Ï·á! ¿ÀÇÁ´× ½ÃÀÛ...";
+        DOTween.Pause("statusFade");        // â† Fade Loop ë©ˆì¶”ê¸°
+        statusText.DOFade(1f, 0.2f);        // â† ì•ŒíŒŒ ì›ë³µ
+        statusText.text = "ëª¨ë“  ì¸ì› ì—°ê²° ì™„ë£Œ! ì˜¤í”„ë‹ ì‹œì‘...";
         yield return new WaitForSeconds(1.0f);
 
         var gm2 = FindFirstObjectByType<GameManager>();
@@ -82,31 +82,32 @@ public class WaitingSceneUI : MonoBehaviour
 
     void UpdateUI()
     {
-        connectedText.text = $"¿¬°áµÈ ÀÎ¿ø: {connectedCount} / {maxPlayers}";
+        connectedText.text = $"ì—°ê²°ëœ ì¸ì›: {connectedCount} / {maxPlayers}";
         statusText.text = connectedCount < maxPlayers
-            ? "¸ğ¹ÙÀÏ ¿¬°áÀ» ±â´Ù¸®´Â Áß..."
-            : "¸ğµç ÀÎ¿ø ¿¬°á ¿Ï·á!";
+            ? "ëª¨ë°”ì¼ ì—°ê²°ì„ ê¸°ë‹¤ë¦¬ëŠ” ì¤‘..."
+            : "ëª¨ë“  ì¸ì› ì—°ê²° ì™„ë£Œ!";
     }
 
     string GetLocalIP()
     {
         try
         {
-            using (var socket = new System.Net.Sockets.Socket(
-                System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Dgram, 0))
+            var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+            foreach (var ip in host.AddressList)
             {
-                socket.Connect("8.8.8.8", 65530);
-                return (socket.LocalEndPoint as System.Net.IPEndPoint).Address.ToString();
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                    && ip.ToString().StartsWith("192.168"))
+                    return ip.ToString();
             }
+            return "IP ì—†ìŒ";
         }
-        catch { return "127.0.0.1"; }
+        catch { return "IP ì—†ìŒ"; }
     }
 
     void OnDestroy()
     {
-        DOTween.Kill("statusFade");  // ¡ç Ãß°¡
-        DOTween.Kill("countPunch");  // ¡ç Ãß°¡
+        DOTween.Kill("statusFade");  // â† ì¶”ê°€
+        DOTween.Kill("countPunch");  // â† ì¶”ê°€
 
         if (InstanceFinder.ServerManager != null)
             InstanceFinder.ServerManager.OnRemoteConnectionState -= OnClientConnected;

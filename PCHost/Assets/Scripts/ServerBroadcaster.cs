@@ -2,84 +2,89 @@ using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Collections;
+using System.Threading;
+using FishNet.Transporting.Tugboat;
+using FishNet;
 
-/// <summary>
-/// PC 서버에서 UDP 브로드캐스트로 자신의 IP를 주기적으로 송신
-/// WaitingScene 오브젝트에 부착
-/// </summary>
 public class ServerBroadcaster : MonoBehaviour
 {
-    [Header("브로드캐스트 설정")]
-    public int broadcastPort = 47777;       // 브로드캐스트 전용 포트 (7777과 다르게)
-    public float broadcastInterval = 1f;    // 송신 간격 (초)
+    public int broadcastPort = 8888;
+    public int fishnetPort = 7770;
 
-    private UdpClient _udpClient;
-    private bool _isBroadcasting = false;
+    private UdpClient udpClient;
+    private Thread broadcastThread;
+    private bool isRunning = false;
 
     void Start()
     {
-        StartBroadcast();
+        isRunning = true;
+        broadcastThread = new Thread(BroadcastLoop);
+        broadcastThread.IsBackground = true;
+        broadcastThread.Start();
     }
 
-    public void StartBroadcast()
-    {
-        if (_isBroadcasting) return;
-        _isBroadcasting = true;
-        StartCoroutine(BroadcastLoop());
-        Debug.Log("ServerBroadcaster: 브로드캐스트 시작");
-    }
-
-    public void StopBroadcast()
-    {
-        _isBroadcasting = false;
-        _udpClient?.Close();
-        _udpClient = null;
-        Debug.Log("ServerBroadcaster: 브로드캐스트 중지");
-    }
-
-    IEnumerator BroadcastLoop()
-    {
-        _udpClient = new UdpClient();
-        _udpClient.EnableBroadcast = true;
-
-        IPEndPoint endPoint = new IPEndPoint(IPAddress.Broadcast, broadcastPort);
-        string myIP = GetLocalIP();
-        byte[] data = Encoding.UTF8.GetBytes($"POLICE_GAME:{myIP}");
-
-        while (_isBroadcasting)
-        {
-            try
-            {
-                _udpClient.Send(data, data.Length, endPoint);
-                Debug.Log($"브로드캐스트 송신: {myIP}");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"브로드캐스트 오류: {e.Message}");
-            }
-
-            yield return new WaitForSeconds(broadcastInterval);
-        }
-    }
-
-    string GetLocalIP()
+    void BroadcastLoop()
     {
         try
         {
-            using (var socket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Dgram, 0))
+            udpClient = new UdpClient();
+            udpClient.EnableBroadcast = true;
+
+            // 255.255.255.255 대신 서브넷 브로드캐스트 주소 사용
+            string broadcastIP = GetSubnetBroadcast();
+            Debug.Log($"[Server] 브로드캐스트 주소: {broadcastIP}");
+
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(broadcastIP), broadcastPort);
+            string message = $"FISHNET_SERVER:{fishnetPort}";
+            byte[] data = Encoding.UTF8.GetBytes(message);
+
+            while (isRunning)
             {
-                socket.Connect("8.8.8.8", 65530);
-                return (socket.LocalEndPoint as IPEndPoint).Address.ToString();
+                udpClient.Send(data, data.Length, endPoint);
+                Thread.Sleep(1000);
             }
         }
-        catch { return "127.0.0.1"; }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[Server] BroadcastLoop 오류: {e.Message}");
+        }
+    }
+
+    string GetSubnetBroadcast()
+    {
+        try
+        {
+            foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                foreach (var addr in ni.GetIPProperties().UnicastAddresses)
+                {
+                    if (addr.Address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        string ip = addr.Address.ToString();
+                        if (ip.StartsWith("192.168"))
+                        {
+                            // 예: 192.168.0.2 + 마스크 255.255.255.0 → 192.168.0.255
+                            byte[] ipBytes = addr.Address.GetAddressBytes();
+                            byte[] maskBytes = addr.IPv4Mask.GetAddressBytes();
+                            byte[] broadcastBytes = new byte[4];
+                            for (int i = 0; i < 4; i++)
+                                broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
+                            return new IPAddress(broadcastBytes).ToString();
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[Server] GetSubnetBroadcast 오류: {e.Message}");
+        }
+        return "192.168.0.255"; // 폴백
     }
 
     void OnDestroy()
     {
-        StopBroadcast();
+        isRunning = false;
+        udpClient?.Close();
     }
 }

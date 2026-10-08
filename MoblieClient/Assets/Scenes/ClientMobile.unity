@@ -156,7 +156,7 @@ MonoBehaviour:
   _ipv4BindAddress: 
   _enableIpv6: 1
   _ipv6BindAddress: 
-  _port: 7777
+  _port: 7770
   _maximumClients: 4095
   _clientAddress: localhost
 --- !u!114 &59866486
@@ -1309,7 +1309,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1396793986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1445,7 +1445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -1659,9 +1659,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81e75e43bc91fc2478ad581a5a922adf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MobileClientUI
-  connectButton: {fileID: 687577301}
+  networkManager: {fileID: 59866486}
   statusText: {fileID: 1053964358}
-  ipInputField: {fileID: 1396793986}
+  connectButton: {fileID: 687577301}
+  broadcastPort: 8888
+  nextSceneName: JobSelectScene
 --- !u!114 &1533550130
 MonoBehaviour:
   m_ObjectHideFlags: 0
